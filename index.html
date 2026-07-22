@@ -1,0 +1,3499 @@
+<!DOCTYPE html>
+<html lang="sw">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🎮 GameStore - Premium Gaming</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js">
+    </script>
+
+    <!-- Three.js for 3D/360° -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js">
+    </script>
+
+    <style>
+        /* ================================================================
+                   ROOT VARIABLES
+                   ================================================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fc;
+            --bg-card: rgba(255, 255, 255, 0.7);
+            --bg-card-hover: rgba(255, 255, 255, 0.9);
+            --bg-glass: rgba(255, 255, 255, 0.3);
+            --text-primary: #1a1f36;
+            --text-secondary: #4a5a7a;
+            --text-muted: #8a9ab8;
+            --border-color: rgba(0, 0, 0, 0.06);
+            --border-hover: rgba(79, 110, 247, 0.15);
+            --accent: #4f6ef7;
+            --accent-glow: rgba(79, 110, 247, 0.12);
+            --gold: #fbbf24;
+            --gold-glow: rgba(251, 191, 36, 0.12);
+            --green: #22c55e;
+            --green-glow: rgba(34, 197, 94, 0.1);
+            --red: #ef4444;
+            --red-glow: rgba(239, 68, 68, 0.1);
+            --orange: #f59e0b;
+            --pink: #ec4899;
+            --purple: #8b5cf6;
+            --shadow: 0 20px 60px rgba(0, 0, 0, 0.06);
+            --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.04);
+            --radius: 24px;
+            --radius-sm: 14px;
+            --radius-xs: 8px;
+            --transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            --font-main: 'Inter', sans-serif;
+        }
+
+        .dark-mode {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #141b2b;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --bg-card-hover: rgba(255, 255, 255, 0.07);
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --text-primary: #f0f4ff;
+            --text-secondary: #a8b8d8;
+            --text-muted: #4a5a7a;
+            --border-color: rgba(255, 255, 255, 0.05);
+            --border-hover: rgba(79, 110, 247, 0.2);
+            --shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            transition: background 0.4s, color 0.4s, border-color 0.4s;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, var(--accent), var(--gold));
+            border-radius: 10px;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* ================================================================
+                   LOADER
+                   ================================================================ */
+        #loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            transition: opacity 0.6s, visibility 0.6s;
+        }
+
+        #loader.hide {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loader-spinner {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent);
+            animation: spin 1s linear infinite;
+        }
+
+        .loader-text {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ================================================================
+                   TOAST
+                   ================================================================ */
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 380px;
+            width: 100%;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: var(--bg-secondary);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 14px 20px;
+            color: var(--text-primary);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateX(120%);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-weight: 500;
+            font-size: 0.95rem;
+            pointer-events: all;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+        .toast.success {
+            border-left: 4px solid var(--green);
+        }
+        .toast.error {
+            border-left: 4px solid var(--red);
+        }
+        .toast.warning {
+            border-left: 4px solid var(--gold);
+        }
+        .toast i {
+            font-size: 1.3rem;
+        }
+
+        /* ================================================================
+                   WHATSAPP FLOATING BUTTON
+                   ================================================================ */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 90px;
+            right: 24px;
+            z-index: 999;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #25D366;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 4px 30px rgba(37, 211, 102, 0.4);
+            transition: var(--transition);
+            cursor: pointer;
+            text-decoration: none;
+            animation: pulse-whatsapp 2s infinite;
+        }
+
+        .whatsapp-float:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 40px rgba(37, 211, 102, 0.6);
+        }
+
+        @keyframes pulse-whatsapp {
+            0%,
+            100% {
+                box-shadow: 0 4px 30px rgba(37, 211, 102, 0.4);
+            }
+            50% {
+                box-shadow: 0 4px 50px rgba(37, 211, 102, 0.7);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .whatsapp-float {
+                bottom: 80px;
+                right: 16px;
+                width: 50px;
+                height: 50px;
+                font-size: 1.6rem;
+            }
+        }
+
+        /* ================================================================
+                   NAVBAR
+                   ================================================================ */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--bg-secondary);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            transition: background 0.4s, border-color 0.4s;
+        }
+
+        .navbar .brand {
+            font-size: 1.6rem;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-primary);
+        }
+
+        .navbar .brand i {
+            color: var(--accent);
+            font-size: 1.8rem;
+        }
+
+        .navbar .brand span {
+            color: var(--accent);
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-controls button {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 40px;
+            padding: 6px 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-controls button:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+        }
+
+        .hamburger {
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.6rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            display: none;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            padding: 8px 16px;
+            border-radius: 30px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: var(--transition);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-links a:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .nav-links a.active {
+            background: var(--accent-glow);
+            color: var(--accent);
+        }
+
+        .nav-admin-toggle {
+            padding: 6px 18px;
+            border-radius: 30px;
+            background: var(--gold-glow);
+            color: var(--gold);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.8rem;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-admin-toggle:hover {
+            background: rgba(251, 191, 36, 0.2);
+            box-shadow: 0 0 30px var(--gold-glow);
+        }
+
+        @media (max-width: 768px) {
+            .hamburger {
+                display: block;
+            }
+            .nav-links {
+                display: none;
+                width: 100%;
+                flex-direction: column;
+                align-items: stretch;
+                padding: 12px 0;
+                gap: 2px;
+                border-top: 1px solid var(--border-color);
+                margin-top: 10px;
+            }
+            .nav-links.open {
+                display: flex;
+            }
+            .nav-links a {
+                padding: 10px 16px;
+                border-radius: 12px;
+            }
+            .navbar .brand {
+                font-size: 1.2rem;
+            }
+        }
+
+        /* ================================================================
+                   PAGES
+                   ================================================================ */
+        .page {
+            display: none;
+            padding: 24px 30px 80px;
+            max-width: 1400px;
+            margin: 0 auto;
+            animation: fadeUp 0.5s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeUp {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .page {
+                padding: 12px 12px 80px;
+            }
+        }
+
+        /* ================================================================
+                   HERO SLIDER
+                   ================================================================ */
+        .hero-slider {
+            position: relative;
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 30px;
+            height: 480px;
+            background: var(--bg-secondary);
+        }
+
+        .hero-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            background: linear-gradient(135deg, var(--bg-secondary), var(--accent-glow));
+        }
+
+        .hero-slide.active {
+            opacity: 1;
+        }
+
+        .hero-slide .hero-content {
+            text-align: center;
+            max-width: 700px;
+        }
+
+        .hero-slide .hero-content .hero-badge {
+            display: inline-block;
+            padding: 4px 16px;
+            border-radius: 30px;
+            background: var(--accent-glow);
+            color: var(--accent);
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .hero-slide .hero-content h1 {
+            font-size: 3.2rem;
+            font-weight: 900;
+            line-height: 1.2;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .hero-slide .hero-content h1 span {
+            color: var(--accent);
+        }
+
+        .hero-slide .hero-content p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+        }
+
+        .hero-slide .hero-content .btn-hero {
+            padding: 14px 40px;
+            border: none;
+            border-radius: 40px;
+            background: linear-gradient(135deg, var(--accent), #7c3aed);
+            color: #fff;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .hero-slide .hero-content .btn-hero:hover {
+            transform: scale(1.04);
+            box-shadow: 0 8px 30px var(--accent-glow);
+        }
+
+        .hero-dots {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 2;
+        }
+
+        .hero-dots .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
+        }
+
+        .hero-dots .dot.active {
+            background: var(--accent);
+            width: 30px;
+            border-radius: 10px;
+        }
+
+        .hero-arrows {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .hero-arrows button {
+            pointer-events: all;
+            background: var(--bg-glass);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .hero-arrows button:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-hover);
+        }
+
+        @media (max-width: 768px) {
+            .hero-slider {
+                height: 320px;
+            }
+            .hero-slide .hero-content h1 {
+                font-size: 2rem;
+            }
+            .hero-slide .hero-content p {
+                font-size: 0.9rem;
+            }
+            .hero-arrows button {
+                width: 36px;
+                height: 36px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero-slider {
+                height: 260px;
+            }
+            .hero-slide .hero-content h1 {
+                font-size: 1.5rem;
+            }
+            .hero-slide .hero-content .btn-hero {
+                padding: 10px 24px;
+                font-size: 0.85rem;
+            }
+        }
+
+        /* ================================================================
+                   SECTION HEADER
+                   ================================================================ */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .section-header h2 i {
+            color: var(--accent);
+            margin-right: 8px;
+        }
+
+        .section-header .view-all {
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .section-header .view-all:hover {
+            color: var(--accent);
+        }
+
+        /* ================================================================
+                   GAME CARDS
+                   ================================================================ */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .game-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .game-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--border-hover);
+            box-shadow: 0 20px 60px rgba(79, 110, 247, 0.08);
+        }
+
+        .game-card .game-image {
+            position: relative;
+            height: 200px;
+            background: var(--bg-card);
+            overflow: hidden;
+        }
+
+        .game-card .game-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.6s;
+        }
+
+        .game-card:hover .game-image img {
+            transform: scale(1.05);
+        }
+
+        .game-card .game-image .game-badge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .game-card .game-image .game-badge.free {
+            background: var(--green-glow);
+            color: var(--green);
+        }
+
+        .game-card .game-image .game-badge.normal {
+            background: var(--accent-glow);
+            color: var(--accent);
+        }
+
+        .game-card .game-image .game-badge.vip {
+            background: var(--gold-glow);
+            color: var(--gold);
+        }
+
+        .game-card .game-image .game-platform {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .game-card .game-image .game-platform span {
+            background: var(--bg-glass);
+            backdrop-filter: blur(8px);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .game-card .game-info {
+            padding: 16px 18px;
+        }
+
+        .game-card .game-info .game-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .game-card .game-info .game-category {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .game-card .game-info .game-price {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .game-card .game-info .game-price .current {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .game-card .game-info .game-price .free-text {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--green);
+        }
+
+        .game-card .game-info .game-price .original {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-decoration: line-through;
+        }
+
+        .game-card .game-info .game-rating {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+            color: var(--gold);
+            font-size: 0.85rem;
+        }
+
+        .game-card .game-info .game-rating .count {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        /* ================================================================
+                   FILTERS
+                   ================================================================ */
+        .filters-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .filters-section .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filters-section .filter-group label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .filters-section .filter-group select,
+        .filters-section .filter-group input {
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            outline: none;
+            transition: var(--transition);
+            min-width: 120px;
+        }
+
+        .filters-section .filter-group select:focus,
+        .filters-section .filter-group input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-glow);
+        }
+
+        .btn-filter {
+            padding: 8px 24px;
+            border: none;
+            border-radius: 30px;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-filter:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .btn-filter.reset {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-filter.reset:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 768px) {
+            .filters-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .filters-section .filter-group {
+                flex-wrap: wrap;
+            }
+            .filters-section .filter-group select,
+            .filters-section .filter-group input {
+                min-width: 100px;
+                flex: 1;
+            }
+        }
+
+        /* ================================================================
+                   GAME DETAIL MODAL
+                   ================================================================ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            cursor: pointer;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            max-width: 750px;
+            width: 100%;
+            max-height: 92vh;
+            overflow-y: auto;
+            padding: 30px 34px;
+            cursor: default;
+            position: relative;
+            animation: fadeUp 0.4s ease;
+        }
+
+        .modal-content .close-modal {
+            position: absolute;
+            top: 16px;
+            right: 22px;
+            color: var(--text-secondary);
+            font-size: 2rem;
+            cursor: pointer;
+            background: none;
+            border: none;
+            transition: var(--transition);
+        }
+
+        .modal-content .close-modal:hover {
+            color: var(--text-primary);
+            transform: rotate(90deg);
+        }
+
+        .modal-content .modal-image {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-content .modal-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .modal-content .modal-title i {
+            color: var(--accent);
+            margin-right: 10px;
+        }
+
+        .modal-content .modal-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin: 8px 0 12px;
+        }
+
+        .modal-content .modal-badge.free {
+            background: var(--green-glow);
+            color: var(--green);
+        }
+        .modal-content .modal-badge.normal {
+            background: var(--accent-glow);
+            color: var(--accent);
+        }
+        .modal-content .modal-badge.vip {
+            background: var(--gold-glow);
+            color: var(--gold);
+        }
+
+        .modal-content .modal-desc {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin: 12px 0;
+        }
+
+        .modal-content .modal-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 12px 0;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-content .modal-details .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        .modal-content .modal-details .detail-item i {
+            color: var(--accent);
+            width: 20px;
+        }
+
+        .modal-content .modal-price {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        .modal-content .modal-price .current {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .modal-content .modal-price .free-text {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--green);
+        }
+
+        .modal-content .modal-price .original {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            text-decoration: line-through;
+        }
+
+        .modal-content .btn-order {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 40px;
+            background: linear-gradient(135deg, var(--accent), #7c3aed);
+            color: #fff;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .modal-content .btn-order:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 30px var(--accent-glow);
+        }
+
+        .modal-content .btn-order.free-btn {
+            background: linear-gradient(135deg, var(--green), #16a34a);
+        }
+
+        .modal-content .btn-order.vip-btn {
+            background: linear-gradient(135deg, var(--gold), #f59e0b);
+        }
+
+        @media (max-width: 600px) {
+            .modal-content {
+                padding: 20px 18px;
+                margin: 10px;
+            }
+            .modal-content .modal-title {
+                font-size: 1.2rem;
+            }
+            .modal-content .modal-details {
+                grid-template-columns: 1fr;
+            }
+            .modal-content .modal-price .current {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* ================================================================
+                   ORDER FORM (inside modal)
+                   ================================================================ */
+        .order-form {
+            display: none;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .order-form.show {
+            display: block;
+        }
+
+        .order-form .form-group {
+            margin-bottom: 12px;
+        }
+
+        .order-form .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 4px;
+            color: var(--text-secondary);
+        }
+
+        .order-form .form-group input,
+        .order-form .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 1rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .order-form .form-group input:focus,
+        .order-form .form-group textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-glow);
+        }
+
+        .order-form .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .order-form .btn-submit-order {
+            padding: 12px 32px;
+            border: none;
+            border-radius: 40px;
+            background: linear-gradient(135deg, var(--green), #16a34a);
+            color: #fff;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .order-form .btn-submit-order:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 30px var(--green-glow);
+        }
+
+        /* ================================================================
+                   ADMIN PANEL
+                   ================================================================ */
+        .admin-panel {
+            display: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 28px 32px;
+            margin-bottom: 24px;
+        }
+
+        .admin-panel.show {
+            display: block;
+        }
+
+        .admin-panel .admin-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--gold);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .admin-panel .admin-title i {
+            color: var(--accent);
+        }
+
+        .admin-panel .admin-lock {
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .admin-panel .admin-lock input {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 1rem;
+            text-align: center;
+            outline: none;
+            transition: var(--transition);
+            letter-spacing: 4px;
+        }
+
+        .admin-panel .admin-lock input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 4px var(--gold-glow);
+        }
+
+        .admin-panel .admin-lock .btn-unlock {
+            margin-top: 14px;
+            padding: 12px 40px;
+            border: none;
+            border-radius: 40px;
+            background: linear-gradient(135deg, var(--gold), #f59e0b);
+            color: #0a0e1a;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .admin-panel .admin-lock .btn-unlock:hover {
+            transform: scale(1.04);
+            box-shadow: 0 8px 30px var(--gold-glow);
+        }
+
+        .admin-panel .admin-lock .error {
+            color: var(--red);
+            margin-top: 10px;
+            min-height: 24px;
+            font-weight: 600;
+        }
+
+        .admin-panel .admin-content {
+            display: none;
+        }
+
+        .admin-panel .admin-content.show {
+            display: block;
+        }
+
+        /* Admin Stats */
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .admin-stats .stat-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 16px 20px;
+            text-align: center;
+        }
+
+        .admin-stats .stat-box .number {
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--text-primary);
+        }
+
+        .admin-stats .stat-box .label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        /* Admin Tabs */
+        .admin-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .admin-tabs .tab {
+            padding: 8px 20px;
+            border-radius: 30px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .admin-tabs .tab:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        .admin-tabs .tab.active {
+            background: var(--accent-glow);
+            color: var(--accent);
+        }
+
+        .admin-tab-content {
+            display: none;
+        }
+
+        .admin-tab-content.active {
+            display: block;
+        }
+
+        /* Admin Forms */
+        .admin-panel .form-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .admin-panel .form-group {
+            flex: 1;
+            min-width: 150px;
+            margin-bottom: 12px;
+        }
+
+        .admin-panel .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
+            color: var(--text-secondary);
+        }
+
+        .admin-panel .form-group input,
+        .admin-panel .form-group select,
+        .admin-panel .form-group textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .admin-panel .form-group input:focus,
+        .admin-panel .form-group select:focus,
+        .admin-panel .form-group textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-glow);
+        }
+
+        .admin-panel .form-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .admin-panel .form-group input[type="file"] {
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        .admin-panel .btn-primary {
+            padding: 10px 28px;
+            border: none;
+            border-radius: 40px;
+            background: linear-gradient(135deg, var(--accent), #7c3aed);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .admin-panel .btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 30px var(--accent-glow);
+        }
+
+        .admin-panel .btn-danger {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 30px;
+            background: var(--red-glow);
+            color: var(--red);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .admin-panel .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .admin-panel .btn-success {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 30px;
+            background: var(--green-glow);
+            color: var(--green);
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .admin-panel .btn-success:hover {
+            background: rgba(34, 197, 94, 0.25);
+        }
+
+        /* Admin Orders Table */
+        .orders-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .orders-table th {
+            text-align: left;
+            padding: 10px 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .orders-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .orders-table .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .orders-table .status-badge.pending {
+            background: var(--gold-glow);
+            color: var(--gold);
+        }
+        .orders-table .status-badge.approved {
+            background: var(--accent-glow);
+            color: var(--accent);
+        }
+        .orders-table .status-badge.completed {
+            background: var(--green-glow);
+            color: var(--green);
+        }
+        .orders-table .status-badge.cancelled {
+            background: var(--red-glow);
+            color: var(--red);
+        }
+
+        .orders-table .status-select {
+            padding: 4px 8px;
+            border-radius: var(--radius-xs);
+            border: 1.5px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 0.8rem;
+            outline: none;
+        }
+
+        .orders-table .status-select:focus {
+            border-color: var(--accent);
+        }
+
+        /* Admin Games List */
+        .admin-games-list .admin-game-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .admin-games-list .admin-game-item .info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .admin-games-list .admin-game-item .info img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: var(--radius-xs);
+            border: 1px solid var(--border-color);
+        }
+
+        .admin-games-list .admin-game-item .info .name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .admin-games-list .admin-game-item .info .badge-sm {
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.6rem;
+            font-weight: 700;
+        }
+
+        .admin-games-list .admin-game-item .info .badge-sm.free {
+            background: var(--green-glow);
+            color: var(--green);
+        }
+        .admin-games-list .admin-game-item .info .badge-sm.normal {
+            background: var(--accent-glow);
+            color: var(--accent);
+        }
+        .admin-games-list .admin-game-item .info .badge-sm.vip {
+            background: var(--gold-glow);
+            color: var(--gold);
+        }
+
+        .admin-games-list .admin-game-item .price {
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .admin-games-list .admin-game-item .actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .admin-games-list .admin-game-item .actions button {
+            padding: 4px 12px;
+            border: none;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .admin-games-list .admin-game-item .actions .edit {
+            background: var(--accent-glow);
+            color: var(--accent);
+        }
+
+        .admin-games-list .admin-game-item .actions .edit:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .admin-games-list .admin-game-item .actions .delete {
+            background: var(--red-glow);
+            color: var(--red);
+        }
+
+        .admin-games-list .admin-game-item .actions .delete:hover {
+            background: var(--red);
+            color: #fff;
+        }
+
+        /* ================================================================
+                   BOTTOM NAV
+                   ================================================================ */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 12px;
+            z-index: 999;
+            display: none;
+        }
+
+        .bottom-nav .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            color: var(--text-muted);
+            font-size: 0.6rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 4px 12px;
+            border-radius: 12px;
+            transition: var(--transition);
+            border: none;
+            background: none;
+        }
+
+        .bottom-nav .nav-item i {
+            font-size: 1.3rem;
+        }
+
+        .bottom-nav .nav-item.active {
+            color: var(--accent);
+        }
+
+        .bottom-nav .nav-item:hover {
+            color: var(--text-primary);
+        }
+
+        @media (max-width: 768px) {
+            .bottom-nav {
+                display: flex;
+            }
+            .games-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .games-grid {
+                grid-template-columns: 1fr;
+            }
+            .game-card .game-image {
+                height: 160px;
+            }
+            .admin-stats {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* ================================================================
+                   FOOTER
+                   ================================================================ */
+        .footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 40px 30px 20px;
+            margin-top: 30px;
+        }
+
+        .footer .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .footer .footer-grid .footer-col h4 {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .footer .footer-grid .footer-col p,
+        .footer .footer-grid .footer-col a {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.8;
+            display: block;
+            transition: var(--transition);
+        }
+
+        .footer .footer-grid .footer-col a:hover {
+            color: var(--accent);
+        }
+
+        .footer .footer-grid .footer-col .social-icons {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        .footer .footer-grid .footer-col .social-icons a {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            font-size: 1.1rem;
+        }
+
+        .footer .footer-grid .footer-col .social-icons a:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .footer .footer-bottom {
+            text-align: center;
+            padding-top: 20px;
+            margin-top: 20px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* ================================================================
+                   CONTACT PAGE
+                   ================================================================ */
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 16px;
+        }
+
+        .contact-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 24px 28px;
+            transition: var(--transition);
+            text-align: center;
+        }
+
+        .contact-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-4px);
+        }
+
+        .contact-card i {
+            font-size: 2.5rem;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+
+        .contact-card h4 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .contact-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .contact-card .btn-contact {
+            margin-top: 12px;
+            padding: 10px 28px;
+            border: none;
+            border-radius: 30px;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        .contact-card .btn-contact:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 30px var(--accent-glow);
+        }
+
+        .contact-card .btn-contact.whatsapp-btn {
+            background: #25D366;
+        }
+
+        .contact-card .btn-contact.whatsapp-btn:hover {
+            box-shadow: 0 8px 30px rgba(37, 211, 102, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ================================================================
+                   FAQ SECTION
+                   ================================================================ */
+        .faq-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 16px 20px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .faq-item:hover {
+            border-color: var(--border-hover);
+        }
+
+        .faq-item .faq-question {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .faq-item .faq-question i {
+            transition: var(--transition);
+        }
+
+        .faq-item .faq-answer {
+            display: none;
+            margin-top: 8px;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+
+        .faq-item.open .faq-answer {
+            display: block;
+        }
+
+        .faq-item.open .faq-question i {
+            transform: rotate(180deg);
+        }
+
+        /* ================================================================
+                   SKELETON
+                   ================================================================ */
+        .skeleton {
+            background: var(--bg-card);
+            border-radius: var(--radius-sm);
+            animation: shimmer 1.5s infinite;
+            background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%);
+            background-size: 200% 100%;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        .skeleton-image {
+            height: 200px;
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+        }
+
+        .skeleton-text {
+            height: 14px;
+            margin: 6px 0;
+            border-radius: 4px;
+        }
+
+        .skeleton-text.w-50 {
+            width: 50%;
+        }
+        .skeleton-text.w-70 {
+            width: 70%;
+        }
+        .skeleton-text.w-30 {
+            width: 30%;
+        }
+
+        /* ================================================================
+                   MISC
+                   ================================================================ */
+        .glass {
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-8 {
+            margin-top: 8px;
+        }
+        .mt-16 {
+            margin-top: 16px;
+        }
+        .mb-16 {
+            margin-bottom: 16px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 12px;
+            opacity: 0.3;
+        }
+
+        /* Newsletter */
+        .newsletter-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 30px 34px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .newsletter-box h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .newsletter-box p {
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .newsletter-box .newsletter-form {
+            display: flex;
+            gap: 10px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .newsletter-box .newsletter-form input {
+            flex: 1;
+            padding: 12px 18px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-color);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 1rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .newsletter-box .newsletter-form input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-glow);
+        }
+
+        .newsletter-box .newsletter-form button {
+            padding: 12px 28px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, var(--accent), #7c3aed);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .newsletter-box .newsletter-form button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 30px var(--accent-glow);
+        }
+
+        @media (max-width: 480px) {
+            .newsletter-box .newsletter-form {
+                flex-direction: column;
+            }
+            .newsletter-box .newsletter-form button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== LOADER ===== -->
+    <div id="loader">
+        <div class="loader-spinner"></div>
+        <div class="loader-text">🎮 GameStore</div>
+    </div>
+
+    <!-- ===== TOAST ===== -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- ===== WHATSAPP FLOATING ===== -->
+    <a href="https://wa.me/255718278672" target="_blank" class="whatsapp-float" title="WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
+    <!-- ===== NAVBAR ===== -->
+    <nav class="navbar" id="navbar">
+        <div class="brand">
+            <i class="fas fa-gamepad"></i> Game<span>Store</span>
+        </div>
+
+        <div class="nav-controls">
+            <button id="themeToggleNav" title="Badili mandhari">
+                <i class="fas fa-moon" id="themeIconNav"></i>
+            </button>
+            <button class="hamburger" id="hamburger">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+
+        <div class="nav-links" id="navLinks">
+            <a class="active" data-page="home"><i class="fas fa-home"></i> Nyumbani</a>
+            <a data-page="games"><i class="fas fa-gamepad"></i> Games</a>
+            <a data-page="contact"><i class="fas fa-envelope"></i> Contact</a>
+            <button class="nav-admin-toggle" id="adminToggle"><i class="fas fa-shield-alt"></i> Admin</button>
+        </div>
+    </nav>
+
+    <!-- ===== BOTTOM NAV ===== -->
+    <div class="bottom-nav" id="bottomNav">
+        <button class="nav-item active" data-page="home">
+            <i class="fas fa-home"></i>
+            <span>Nyumbani</span>
+        </button>
+        <button class="nav-item" data-page="games">
+            <i class="fas fa-gamepad"></i>
+            <span>Games</span>
+        </button>
+        <button class="nav-item" data-page="contact">
+            <i class="fas fa-envelope"></i>
+            <span>Contact</span>
+        </button>
+        <button class="nav-item" id="bottomAdminToggle">
+            <i class="fas fa-shield-alt"></i>
+            <span>Admin</span>
+        </button>
+    </div>
+
+    <!-- ===== PAGE: HOME ===== -->
+    <section id="page-home" class="page active">
+        <!-- Hero Slider -->
+        <div class="hero-slider" id="heroSlider">
+            <div class="hero-slide active">
+                <div class="hero-content">
+                    <span class="hero-badge">🔥 Trending Games</span>
+                    <h1>Premium <span>Gaming</span> Experience</h1>
+                    <p>Discover the best games at the best prices. From action to adventure, we have it all.</p>
+                    <button class="btn-hero" onclick="showPage('games')">Explore Games <i class="fas fa-arrow-right"></i></button>
+                </div>
+            </div>
+            <div class="hero-slide">
+                <div class="hero-content">
+                    <span class="hero-badge">🎮 New Arrivals</span>
+                    <h1>Latest <span>Games</span> Added</h1>
+                    <p>Fresh games every week. Stay ahead of the gaming world.</p>
+                    <button class="btn-hero" onclick="showPage('games')">View New <i class="fas fa-arrow-right"></i></button>
+                </div>
+            </div>
+            <div class="hero-slide">
+                <div class="hero-content">
+                    <span class="hero-badge">💰 Best Deals</span>
+                    <h1>Up to <span>50% Off</span></h1>
+                    <p>Grab your favorite games with exclusive discounts. Limited time!</p>
+                    <button class="btn-hero" onclick="showPage('games')">Shop Now <i class="fas fa-arrow-right"></i></button>
+                </div>
+            </div>
+            <div class="hero-dots" id="heroDots">
+                <button class="dot active" data-index="0"></button>
+                <button class="dot" data-index="1"></button>
+                <button class="dot" data-index="2"></button>
+            </div>
+            <div class="hero-arrows">
+                <button id="heroPrev"><i class="fas fa-chevron-left"></i></button>
+                <button id="heroNext"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
+
+        <!-- Categories -->
+        <div class="section-header">
+            <h2><i class="fas fa-tags"></i> Categories</h2>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px;margin-bottom:30px;" id="categoriesGrid">
+            <!-- Rendered by JS -->
+        </div>
+
+        <!-- Featured Games -->
+        <div class="section-header">
+            <h2><i class="fas fa-star"></i> Featured Games</h2>
+            <span class="view-all" onclick="showPage('games')">View All <i class="fas fa-arrow-right"></i></span>
+        </div>
+        <div class="games-grid" id="featuredGames">
+            <!-- Rendered by JS -->
+        </div>
+
+        <!-- Trending Games -->
+        <div class="section-header">
+            <h2><i class="fas fa-fire"></i> Trending Games</h2>
+            <span class="view-all" onclick="showPage('games')">View All <i class="fas fa-arrow-right"></i></span>
+        </div>
+        <div class="games-grid" id="trendingGames">
+            <!-- Rendered by JS -->
+        </div>
+
+        <!-- Free Games -->
+        <div class="section-header">
+            <h2><i class="fas fa-gift"></i> Free Games</h2>
+            <span class="view-all" onclick="showPage('games')">View All <i class="fas fa-arrow-right"></i></span>
+        </div>
+        <div class="games-grid" id="freeGames">
+            <!-- Rendered by JS -->
+        </div>
+
+        <!-- Newsletter -->
+        <div class="newsletter-box">
+            <h3>📬 Subscribe to Newsletter</h3>
+            <p>Get updates on new games, exclusive offers, and gaming news.</p>
+            <div class="newsletter-form">
+                <input type="email" id="newsletterEmail" placeholder="Your email address..." />
+                <button id="newsletterBtn">Subscribe</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== PAGE: GAMES ===== -->
+    <section id="page-games" class="page">
+        <div class="section-header">
+            <h2><i class="fas fa-gamepad"></i> All Games</h2>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-section" id="filtersSection">
+            <div class="filter-group">
+                <label>Category</label>
+                <select id="filterCategory">
+                    <option value="all">All</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Platform</label>
+                <select id="filterPlatform">
+                    <option value="all">All</option>
+                    <option value="Android">Android</option>
+                    <option value="PC">PC</option>
+                    <option value="PlayStation">PlayStation</option>
+                    <option value="Xbox">Xbox</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Type</label>
+                <select id="filterType">
+                    <option value="all">All</option>
+                    <option value="free">Free</option>
+                    <option value="normal">Normal</option>
+                    <option value="vip">VIP</option>
+                </select>
+            </div>
+            <button class="btn-filter" id="applyFiltersBtn">Apply Filters</button>
+            <button class="btn-filter reset" id="resetFiltersBtn">Reset</button>
+        </div>
+
+        <div class="games-grid" id="allGamesGrid">
+            <!-- Rendered by JS -->
+        </div>
+    </section>
+
+    <!-- ===== PAGE: CONTACT ===== -->
+    <section id="page-contact" class="page">
+        <div class="section-header">
+            <h2><i class="fas fa-envelope"></i> Contact Us</h2>
+        </div>
+
+        <div class="contact-grid">
+            <div class="contact-card">
+                <i class="fas fa-envelope"></i>
+                <h4>Email</h4>
+                <p>dullamanyama0@gmail.com</p>
+                <button class="btn-contact" onclick="window.location.href='mailto:dullamanyama0@gmail.com'">
+                    <i class="fas fa-paper-plane"></i> Send Email
+                </button>
+            </div>
+            <div class="contact-card">
+                <i class="fab fa-whatsapp" style="color:#25D366;"></i>
+                <h4>WhatsApp / Phone</h4>
+                <p>+255 718 278 672</p>
+                <button class="btn-contact whatsapp-btn" onclick="window.open('https://wa.me/255718278672','_blank')">
+                    <i class="fab fa-whatsapp"></i> Chat on WhatsApp
+                </button>
+            </div>
+        </div>
+
+        <!-- FAQ -->
+        <div style="margin-top:30px;">
+            <div class="section-header">
+                <h2><i class="fas fa-question-circle"></i> FAQ</h2>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>How do I order a game?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">Click on any game, then click "Order Now" and fill in your details. We'll process your order within 24 hours.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>Are the games original?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">Yes! All games are original and licensed. We provide genuine gaming experiences.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>How do I pay?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">We accept M-Pesa, Airtel Money, Tigo Pesa, HaloPesa, Visa, Mastercard, and PayPal. Contact us for payment details.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question">
+                    <span>How long does delivery take?</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">Digital delivery within 24 hours after payment confirmation. Physical delivery within 2-5 business days.</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== PAGE: ADMIN ===== -->
+    <section id="page-admin" class="page">
+        <div class="section-header">
+            <h2><i class="fas fa-shield-alt"></i> Admin Panel</h2>
+        </div>
+
+        <div class="admin-panel show" id="adminPanel">
+            <!-- Admin Lock -->
+            <div class="admin-lock" id="adminLock">
+                <p style="color:var(--text-secondary);margin-bottom:12px;">
+                    <i class="fas fa-lock"></i> Enter Admin Password
+                </p>
+                <input type="password" id="adminPassInput" placeholder="****" />
+                <button class="btn-unlock" id="adminUnlockBtn"><i class="fas fa-unlock"></i> Unlock</button>
+                <div class="error" id="adminPassError"></div>
+            </div>
+
+            <!-- Admin Content -->
+            <div class="admin-content" id="adminContent">
+                <div class="admin-title"><i class="fas fa-shield-alt"></i> Dashboard</div>
+
+                <!-- Stats -->
+                <div class="admin-stats" id="adminStats">
+                    <div class="stat-box">
+                        <div class="number" id="statGames">0</div>
+                        <div class="label">Total Games</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="number" id="statOrders">0</div>
+                        <div class="label">Total Orders</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="number" id="statPending">0</div>
+                        <div class="label">Pending Orders</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="number" id="statFree">0</div>
+                        <div class="label">Free Games</div>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div class="admin-tabs">
+                    <button class="tab active" data-tab="games">🎮 Games</button>
+                    <button class="tab" data-tab="orders">📦 Orders</button>
+                </div>
+
+                <!-- Games Tab -->
+                <div class="admin-tab-content active" id="tab-games">
+                    <div style="margin-bottom:16px;">
+                        <h4 style="font-family:var(--font-main);font-weight:700;margin-bottom:12px;">Add New Game</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Game Name *</label>
+                                <input type="text" id="gameName" placeholder="Game name..." />
+                            </div>
+                            <div class="form-group">
+                                <label>Category *</label>
+                                <select id="gameCategory">
+                                    <option value="Action">Action</option>
+                                    <option value="Adventure">Adventure</option>
+                                    <option value="RPG">RPG</option>
+                                    <option value="Sports">Sports</option>
+                                    <option value="Racing">Racing</option>
+                                    <option value="Shooting">Shooting</option>
+                                    <option value="Strategy">Strategy</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Platform</label>
+                                <select id="gamePlatform">
+                                    <option value="Android">Android</option>
+                                    <option value="PC">PC</option>
+                                    <option value="PlayStation">PlayStation</option>
+                                    <option value="Xbox">Xbox</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Post Type *</label>
+                                <select id="gameType">
+                                    <option value="free">🟢 FREE</option>
+                                    <option value="normal">🔵 NORMAL</option>
+                                    <option value="vip">🟡 VIP</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Price (TZS)</label>
+                                <input type="number" id="gamePrice" placeholder="0" min="0" />
+                            </div>
+                            <div class="form-group">
+                                <label>Size (GB)</label>
+                                <input type="text" id="gameSize" placeholder="10.5 GB" />
+                            </div>
+                            <div class="form-group">
+                                <label>Version</label>
+                                <input type="text" id="gameVersion" placeholder="v1.0" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea id="gameDescription" placeholder="Game description..." rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Image URL</label>
+                                <input type="text" id="gameImage" placeholder="https://example.com/image.jpg" />
+                            </div>
+                            <div class="form-group">
+                                <label>Or Upload Image</label>
+                                <input type="file" id="gameImageFile" accept="image/*" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Trailer URL</label>
+                                <input type="text" id="gameTrailer" placeholder="https://youtube.com/embed/..." />
+                            </div>
+                            <div class="form-group">
+                                <label>360° Preview URL</label>
+                                <input type="text" id="game360" placeholder="https://example.com/3d.glb" />
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
+                            <button class="btn-primary" id="addGameBtn"><i class="fas fa-plus"></i> Add Game</button>
+                            <button class="btn-primary" id="updateGameBtn" style="display:none;"><i class="fas fa-save"></i> Update Game</button>
+                            <button class="btn-danger" id="cancelEditBtn" style="display:none;">Cancel</button>
+                        </div>
+                        <div id="adminFormFeedback" style="margin-top:8px;font-size:0.9rem;"></div>
+                    </div>
+
+                    <div style="border-top:1px solid var(--border-color);padding-top:16px;">
+                        <h4 style="font-family:var(--font-main);font-weight:700;margin-bottom:12px;">All Games</h4>
+                        <div class="admin-games-list" id="adminGamesList">
+                            <!-- Rendered by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Orders Tab -->
+                <div class="admin-tab-content" id="tab-orders">
+                    <h4 style="font-family:var(--font-main);font-weight:700;margin-bottom:12px;">All Orders</h4>
+                    <div id="adminOrdersContainer">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== GAME DETAIL MODAL ===== -->
+    <div class="modal-overlay" id="gameModal">
+        <div class="modal-content">
+            <button class="close-modal" id="closeModal">&times;</button>
+            <div id="modalBody">
+                <!-- Rendered by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer">
+        <div class="footer-grid">
+            <div class="footer-col">
+                <h4><i class="fas fa-gamepad"></i> GameStore</h4>
+                <p>Premium gaming store. Quality games at the best prices.</p>
+                <div class="social-icons">
+                    <a href="#"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-youtube"></i></a>
+                </div>
+            </div>
+            <div class="footer-col">
+                <h4>Quick Links</h4>
+                <a href="#" onclick="showPage('home')">Home</a>
+                <a href="#" onclick="showPage('games')">Games</a>
+                <a href="#" onclick="showPage('contact')">Contact</a>
+            </div>
+            <div class="footer-col">
+                <h4>Categories</h4>
+                <a href="#" onclick="filterCategory('Action')">Action</a>
+                <a href="#" onclick="filterCategory('RPG')">RPG</a>
+                <a href="#" onclick="filterCategory('Sports')">Sports</a>
+                <a href="#" onclick="filterCategory('Racing')">Racing</a>
+            </div>
+            <div class="footer-col">
+                <h4>Contact</h4>
+                <p><i class="fas fa-envelope"></i> dullamanyama0@gmail.com</p>
+                <p><i class="fab fa-whatsapp"></i> +255 718 278 672</p>
+                <p><i class="fas fa-map-marker-alt"></i> Tanzania</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; 2026 GameStore. All rights reserved. | Powered by Firebase
+        </div>
+    </footer>
+
+    <!-- ============================================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================================ -->
+    <script>
+        (function() {
+            'use strict';
+
+            // ==============================================================
+            // FIREBASE CONFIG
+            // ==============================================================
+            const firebaseConfig = {
+                apiKey: "AIzaSyDpFyANpjv2dMUvXoMSSmqoT3s1UwJLUkg",
+                authDomain: "dvary-9a7d0.firebaseapp.com",
+                projectId: "dvary-9a7d0",
+                storageBucket: "dvary-9a7d0.firebasestorage.app",
+                messagingSenderId: "107370806066",
+                appId: "1:107370806066:android:e954fb03d99e52ac09f52b"
+            };
+
+            let useFirebase = false;
+            let db = null;
+            let storage = null;
+
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                storage = firebase.storage();
+                useFirebase = true;
+                console.log('✅ Firebase connected.');
+            } catch (err) {
+                console.warn('⚠️ Firebase error:', err.message);
+                useFirebase = false;
+            }
+
+            // ==============================================================
+            // ADMIN PASSWORD
+            // ==============================================================
+            const ADMIN_PASSWORD = '5050';
+
+            // ==============================================================
+            // DOM REFS
+            // ==============================================================
+            const $ = (s) => document.querySelector(s);
+            const $$ = (s) => document.querySelectorAll(s);
+
+            const pages = {
+                home: $('#page-home'),
+                games: $('#page-games'),
+                contact: $('#page-contact'),
+                admin: $('#page-admin')
+            };
+
+            const navLinks = $$('.nav-links a[data-page]');
+            const bottomNav = $$('.bottom-nav .nav-item');
+            const hamburger = $('#hamburger');
+            const navLinksContainer = $('#navLinks');
+
+            // Theme
+            const themeToggleNav = $('#themeToggleNav');
+            const themeIconNav = $('#themeIconNav');
+
+            // Hero
+            const heroSlides = $$('.hero-slide');
+            const heroDots = $$('.hero-dots .dot');
+            const heroPrev = $('#heroPrev');
+            const heroNext = $('#heroNext');
+
+            // Admin
+            const adminLock = $('#adminLock');
+            const adminContent = $('#adminContent');
+            const adminPassInput = $('#adminPassInput');
+            const adminUnlockBtn = $('#adminUnlockBtn');
+            const adminPassError = $('#adminPassError');
+            const adminToggle = $('#adminToggle');
+            const bottomAdminToggle = $('#bottomAdminToggle');
+            const adminPanel = $('#adminPanel');
+
+            // Admin Tabs
+            const adminTabs = $$('.admin-tabs .tab');
+            const adminTabContents = $$('.admin-tab-content');
+
+            // Game Form
+            const gameName = $('#gameName');
+            const gameCategory = $('#gameCategory');
+            const gamePlatform = $('#gamePlatform');
+            const gameType = $('#gameType');
+            const gamePrice = $('#gamePrice');
+            const gameSize = $('#gameSize');
+            const gameVersion = $('#gameVersion');
+            const gameDescription = $('#gameDescription');
+            const gameImage = $('#gameImage');
+            const gameImageFile = $('#gameImageFile');
+            const gameTrailer = $('#gameTrailer');
+            const game360 = $('#game360');
+            const addGameBtn = $('#addGameBtn');
+            const updateGameBtn = $('#updateGameBtn');
+            const cancelEditBtn = $('#cancelEditBtn');
+            const adminFormFeedback = $('#adminFormFeedback');
+
+            // Filters
+            const filterCategory = $('#filterCategory');
+            const filterPlatform = $('#filterPlatform');
+            const filterType = $('#filterType');
+            const applyFiltersBtn = $('#applyFiltersBtn');
+            const resetFiltersBtn = $('#resetFiltersBtn');
+
+            // Modal
+            const gameModal = $('#gameModal');
+            const modalBody = $('#modalBody');
+            const closeModal = $('#closeModal');
+
+            // Stats
+            const statGames = $('#statGames');
+            const statOrders = $('#statOrders');
+            const statPending = $('#statPending');
+            const statFree = $('#statFree');
+
+            // Containers
+            const featuredGames = $('#featuredGames');
+            const trendingGames = $('#trendingGames');
+            const freeGames = $('#freeGames');
+            const allGamesGrid = $('#allGamesGrid');
+            const adminGamesList = $('#adminGamesList');
+            const adminOrdersContainer = $('#adminOrdersContainer');
+
+            // Toast
+            const toastContainer = $('#toastContainer');
+
+            let darkMode = false;
+            let isAdminUnlocked = false;
+            let editingGameId = null;
+            let currentSlide = 0;
+            let slideInterval = null;
+            let games = [];
+            let orders = [];
+            let isDarkMode = false;
+
+            // ==============================================================
+            // TOAST
+            // ==============================================================
+            function showToast(message, type = 'info') {
+                const icons = {
+                    success: 'fa-check-circle',
+                    error: 'fa-exclamation-circle',
+                    warning: 'fa-exclamation-triangle',
+                    info: 'fa-info-circle'
+                };
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${message}`;
+                toastContainer.appendChild(toast);
+                setTimeout(() => toast.classList.add('show'), 50);
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 400);
+                }, 4000);
+            }
+
+            // ==============================================================
+            // THEME
+            // ==============================================================
+            function setTheme(mode) {
+                isDarkMode = mode;
+                document.body.classList.toggle('dark-mode', mode);
+                themeIconNav.className = mode ? 'fas fa-sun' : 'fas fa-moon';
+                localStorage.setItem('theme', mode ? 'dark' : 'light');
+            }
+
+            themeToggleNav.addEventListener('click', () => setTheme(!isDarkMode));
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') setTheme(true);
+            else setTheme(false);
+
+            // ==============================================================
+            // NAVIGATION
+            // ==============================================================
+            function showPage(pageId) {
+                Object.values(pages).forEach(p => p.classList.remove('active'));
+                if (pages[pageId]) pages[pageId].classList.add('active');
+
+                navLinks.forEach(a => {
+                    a.classList.toggle('active', a.dataset.page === pageId);
+                });
+
+                bottomNav.forEach(a => {
+                    a.classList.toggle('active', a.dataset.page === pageId);
+                });
+
+                navLinksContainer.classList.remove('open');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                if (pageId === 'games') {
+                    renderAllGames();
+                }
+                if (pageId === 'home') {
+                    renderCategories();
+                    renderFeaturedGames();
+                    renderTrendingGames();
+                    renderFreeGames();
+                }
+                if (pageId === 'admin' && isAdminUnlocked) {
+                    renderAdminGames();
+                    renderAdminOrders();
+                    updateAdminStats();
+                }
+            }
+
+            navLinks.forEach(a => {
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showPage(a.dataset.page);
+                });
+            });
+
+            bottomNav.forEach(a => {
+                a.addEventListener('click', () => {
+                    showPage(a.dataset.page);
+                });
+            });
+
+            hamburger.addEventListener('click', () => {
+                navLinksContainer.classList.toggle('open');
+            });
+
+            window.showPage = showPage;
+
+            // ==============================================================
+            // HERO SLIDER
+            // ==============================================================
+            function goToSlide(index) {
+                heroSlides.forEach((s, i) => {
+                    s.classList.toggle('active', i === index);
+                });
+                heroDots.forEach((d, i) => {
+                    d.classList.toggle('active', i === index);
+                });
+                currentSlide = index;
+            }
+
+            function nextSlide() {
+                goToSlide((currentSlide + 1) % heroSlides.length);
+            }
+
+            function prevSlide() {
+                goToSlide((currentSlide - 1 + heroSlides.length) % heroSlides.length);
+            }
+
+            heroDots.forEach((dot, i) => {
+                dot.addEventListener('click', () => goToSlide(i));
+            });
+
+            heroPrev.addEventListener('click', prevSlide);
+            heroNext.addEventListener('click', nextSlide);
+
+            function startSlideInterval() {
+                if (slideInterval) clearInterval(slideInterval);
+                slideInterval = setInterval(nextSlide, 5000);
+            }
+            startSlideInterval();
+
+            const heroSlider = $('#heroSlider');
+            heroSlider.addEventListener('mouseenter', () => {
+                if (slideInterval) clearInterval(slideInterval);
+            });
+            heroSlider.addEventListener('mouseleave', startSlideInterval);
+
+            // ==============================================================
+            // STORAGE HELPERS
+            // ==============================================================
+            function storageGet(key, def) {
+                try {
+                    const val = localStorage.getItem('gamestore_' + key);
+                    return val ? JSON.parse(val) : def;
+                } catch { return def; }
+            }
+
+            function storageSet(key, val) {
+                localStorage.setItem('gamestore_' + key, JSON.stringify(val));
+            }
+
+            // ==============================================================
+            // LOAD DATA
+            // ==============================================================
+            async function loadData() {
+                try {
+                    if (useFirebase && db) {
+                        // Load games
+                        const gamesSnapshot = await db.collection('games').get();
+                        games = [];
+                        gamesSnapshot.forEach(doc => {
+                            games.push({ id: doc.id, ...doc.data() });
+                        });
+                        storageSet('games', games);
+
+                        // Load orders
+                        const ordersSnapshot = await db.collection('orders').get();
+                        orders = [];
+                        ordersSnapshot.forEach(doc => {
+                            orders.push({ id: doc.id, ...doc.data() });
+                        });
+                        storageSet('orders', orders);
+                    } else {
+                        games = storageGet('games', []);
+                        orders = storageGet('orders', []);
+                    }
+                    renderAll();
+                } catch (err) {
+                    console.error('Load data error:', err);
+                    games = storageGet('games', []);
+                    orders = storageGet('orders', []);
+                    renderAll();
+                }
+            }
+
+            function renderAll() {
+                renderCategories();
+                renderFeaturedGames();
+                renderTrendingGames();
+                renderFreeGames();
+                renderAllGames();
+                renderAdminGames();
+                renderAdminOrders();
+                updateAdminStats();
+                populateFilters();
+            }
+
+            // ==============================================================
+            // SAVE DATA
+            // ==============================================================
+            async function saveData() {
+                storageSet('games', games);
+                storageSet('orders', orders);
+                if (useFirebase && db) {
+                    try {
+                        // Sync games
+                        const gamesSnapshot = await db.collection('games').get();
+                        const existingGameIds = new Set();
+                        gamesSnapshot.forEach(doc => existingGameIds.add(doc.id));
+
+                        const gameBatch = db.batch();
+                        games.forEach(g => {
+                            const ref = db.collection('games').doc(g.id);
+                            gameBatch.set(ref, g);
+                            existingGameIds.delete(g.id);
+                        });
+                        existingGameIds.forEach(id => {
+                            const ref = db.collection('games').doc(id);
+                            gameBatch.delete(ref);
+                        });
+                        await gameBatch.commit();
+
+                        // Sync orders
+                        const ordersSnapshot = await db.collection('orders').get();
+                        const existingOrderIds = new Set();
+                        ordersSnapshot.forEach(doc => existingOrderIds.add(doc.id));
+
+                        const orderBatch = db.batch();
+                        orders.forEach(o => {
+                            const ref = db.collection('orders').doc(o.id);
+                            orderBatch.set(ref, o);
+                            existingOrderIds.delete(o.id);
+                        });
+                        existingOrderIds.forEach(id => {
+                            const ref = db.collection('orders').doc(id);
+                            orderBatch.delete(ref);
+                        });
+                        await orderBatch.commit();
+                    } catch (err) {
+                        console.warn('Firebase sync error:', err);
+                    }
+                }
+            }
+
+            // ==============================================================
+            // RENDER CATEGORIES
+            // ==============================================================
+            function renderCategories() {
+                const categories = ['Action', 'Adventure', 'RPG', 'Sports', 'Racing', 'Shooting', 'Strategy', 'Other'];
+                const grid = document.getElementById('categoriesGrid');
+                grid.innerHTML = categories.map(c => `
+                    <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-sm);padding:16px;text-align:center;cursor:pointer;transition:var(--transition);" onclick="filterCategory('${c}')">
+                        <div style="font-size:2rem;margin-bottom:4px;">${getCategoryIcon(c)}</div>
+                        <div style="font-size:0.75rem;font-weight:600;color:var(--text-secondary);">${c}</div>
+                    </div>
+                `).join('');
+            }
+
+            function getCategoryIcon(cat) {
+                const icons = {
+                    'Action': '⚔️',
+                    'Adventure': '🗺️',
+                    'RPG': '🧙',
+                    'Sports': '⚽',
+                    'Racing': '🏎️',
+                    'Shooting': '🔫',
+                    'Strategy': '🧠',
+                    'Other': '🎮'
+                };
+                return icons[cat] || '🎮';
+            }
+
+            window.filterCategory = function(cat) {
+                showPage('games');
+                filterCategory.value = cat;
+                applyFilters();
+            };
+
+            // ==============================================================
+            // RENDER GAME CARDS
+            // ==============================================================
+            function renderGameCard(game) {
+                const typeLabels = {
+                    free: '🟢 FREE',
+                    normal: '🔵 NORMAL',
+                    vip: '🟡 VIP'
+                };
+                const typeClasses = {
+                    free: 'free',
+                    normal: 'normal',
+                    vip: 'vip'
+                };
+                const priceDisplay = game.type === 'free' ?
+                    `<span class="free-text">FREE</span>` :
+                    `<span class="current">TZS ${formatPrice(game.price || 0)}</span>`;
+
+                const rating = game.rating || 4.5;
+                const stars = generateStars(rating);
+
+                return `
+                    <div class="game-card" onclick="openGame('${game.id}')">
+                        <div class="game-image">
+                            <img src="${game.image || 'https://via.placeholder.com/300x200/f0f4ff/4a5a7a?text=No+Image'}" alt="${game.name}" loading="lazy" />
+                            <span class="game-badge ${typeClasses[game.type] || 'free'}">${typeLabels[game.type] || 'FREE'}</span>
+                            <div class="game-platform">
+                                ${(game.platform || 'Android').split(',').map(p => `<span>${p.trim()}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="game-info">
+                            <div class="game-title">${escapeHtml(game.name)}</div>
+                            <div class="game-category">${game.category || 'Other'}</div>
+                            <div class="game-price">${priceDisplay}</div>
+                            <div class="game-rating">
+                                <span>${stars}</span>
+                                <span class="count">(${game.reviews || 0})</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function generateStars(rating) {
+                const full = Math.floor(rating);
+                const half = rating - full >= 0.5;
+                let stars = '';
+                for (let i = 0; i < full; i++) stars += '⭐';
+                if (half) stars += '⭐';
+                while (stars.length < 5) stars += '☆';
+                return stars;
+            }
+
+            function formatPrice(price) {
+                return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            }
+
+            function escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            // ==============================================================
+            // RENDER SECTIONS
+            // ==============================================================
+            function renderFeaturedGames() {
+                const featured = games.filter(g => g.featured).slice(0, 4);
+                featuredGames.innerHTML = featured.length === 0 ?
+                    `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:30px 0;">No featured games yet.</div>` :
+                    featured.map(renderGameCard).join('');
+            }
+
+            function renderTrendingGames() {
+                const trending = games.filter(g => g.trending).slice(0, 4);
+                trendingGames.innerHTML = trending.length === 0 ?
+                    `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:30px 0;">No trending games yet.</div>` :
+                    trending.map(renderGameCard).join('');
+            }
+
+            function renderFreeGames() {
+                const free = games.filter(g => g.type === 'free').slice(0, 4);
+                freeGames.innerHTML = free.length === 0 ?
+                    `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:30px 0;">No free games yet.</div>` :
+                    free.map(renderGameCard).join('');
+            }
+
+            function renderAllGames() {
+                let filtered = [...games];
+
+                const cat = filterCategory.value;
+                if (cat && cat !== 'all') {
+                    filtered = filtered.filter(g => g.category === cat);
+                }
+
+                const plat = filterPlatform.value;
+                if (plat && plat !== 'all') {
+                    filtered = filtered.filter(g => (g.platform || '').includes(plat));
+                }
+
+                const type = filterType.value;
+                if (type && type !== 'all') {
+                    filtered = filtered.filter(g => g.type === type);
+                }
+
+                allGamesGrid.innerHTML = filtered.length === 0 ?
+                    `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:40px 0;">
+                        <i class="fas fa-search" style="font-size:3rem;display:block;margin-bottom:12px;opacity:0.3;"></i>
+                        No games found matching your filters.
+                    </div>` :
+                    filtered.map(renderGameCard).join('');
+            }
+
+            // ==============================================================
+            // POPULATE FILTERS
+            // ==============================================================
+            function populateFilters() {
+                const cats = [...new Set(games.map(g => g.category).filter(Boolean))];
+                const catSelect = filterCategory;
+                const currentCat = catSelect.value;
+                catSelect.innerHTML = '<option value="all">All</option>' +
+                    cats.map(c => `<option value="${c}">${c}</option>`).join('');
+                if (currentCat && cats.includes(currentCat)) catSelect.value = currentCat;
+
+                // Platform filter already has options
+            }
+
+            function applyFilters() {
+                renderAllGames();
+            }
+
+            applyFiltersBtn.addEventListener('click', applyFilters);
+            resetFiltersBtn.addEventListener('click', () => {
+                filterCategory.value = 'all';
+                filterPlatform.value = 'all';
+                filterType.value = 'all';
+                applyFilters();
+            });
+
+            // ==============================================================
+            // GAME DETAIL MODAL
+            // ==============================================================
+            window.openGame = function(gameId) {
+                const game = games.find(g => g.id === gameId);
+                if (!game) {
+                    showToast('Game not found.', 'error');
+                    return;
+                }
+
+                const typeLabels = {
+                    free: '🟢 FREE',
+                    normal: '🔵 NORMAL',
+                    vip: '🟡 VIP'
+                };
+                const typeClasses = {
+                    free: 'free',
+                    normal: 'normal',
+                    vip: 'vip'
+                };
+                const priceDisplay = game.type === 'free' ?
+                    `<span class="free-text">FREE</span>` :
+                    `<span class="current">TZS ${formatPrice(game.price || 0)}</span>`;
+
+                const btnClass = game.type === 'free' ? 'free-btn' : game.type === 'vip' ? 'vip-btn' : '';
+
+                modalBody.innerHTML = `
+                    <img src="${game.image || 'https://via.placeholder.com/600x300/f0f4ff/4a5a7a?text=No+Image'}" class="modal-image" alt="${escapeHtml(game.name)}" />
+                    <div class="modal-title"><i class="fas fa-gamepad"></i> ${escapeHtml(game.name)}</div>
+                    <span class="modal-badge ${typeClasses[game.type] || 'free'}">${typeLabels[game.type] || 'FREE'}</span>
+                    <div class="modal-desc">${escapeHtml(game.description || 'No description available.')}</div>
+                    <div class="modal-details">
+                        <div class="detail-item"><i class="fas fa-tag"></i> ${game.category || 'Other'}</div>
+                        <div class="detail-item"><i class="fas fa-laptop"></i> ${game.platform || 'Android'}</div>
+                        <div class="detail-item"><i class="fas fa-hdd"></i> ${game.size || 'N/A'}</div>
+                        <div class="detail-item"><i class="fas fa-code-branch"></i> ${game.version || 'v1.0'}</div>
+                    </div>
+                    ${game.trailer ? `<div style="margin:12px 0;border-radius:var(--radius-sm);overflow:hidden;"><iframe width="100%" height="250" src="${game.trailer}" frameborder="0" allowfullscreen></iframe></div>` : ''}
+                    ${game.game360 ? `<div style="margin:12px 0;padding:12px;background:var(--bg-card);border-radius:var(--radius-sm);text-align:center;border:1px solid var(--border-color);">
+                        <i class="fas fa-sync-alt" style="font-size:2rem;color:var(--accent);"></i>
+                        <p style="color:var(--text-secondary);font-size:0.85rem;">360° Preview Available</p>
+                        <button onclick="window.open('${game.game360}','_blank')" style="padding:8px 24px;border:none;border-radius:30px;background:var(--accent);color:#fff;cursor:pointer;margin-top:8px;">View 360°</button>
+                    </div>` : ''}
+                    <div class="modal-price">
+                        ${priceDisplay}
+                        ${game.price && game.type !== 'free' ? `<span class="original">TZS ${formatPrice(game.price + Math.floor(game.price * 0.3))}</span>` : ''}
+                    </div>
+                    <button class="btn-order ${btnClass}" onclick="openOrderForm('${game.id}')">
+                        ${game.type === 'free' ? '🎮 Get Free Game' : '🛒 Order Now'}
+                    </button>
+                    <div class="order-form" id="orderForm">
+                        <div class="form-group">
+                            <label>Full Name *</label>
+                            <input type="text" id="orderName" placeholder="Jina lako kamili..." />
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number *</label>
+                            <input type="tel" id="orderPhone" placeholder="0712345678" />
+                        </div>
+                        <div class="form-group">
+                            <label>Email (optional)</label>
+                            <input type="email" id="orderEmail" placeholder="mfano@email.com" />
+                        </div>
+                        <div class="form-group">
+                            <label>Additional Notes</label>
+                            <textarea id="orderNotes" placeholder="Maelezo ya ziada..."></textarea>
+                        </div>
+                        <button class="btn-submit-order" onclick="submitOrder('${game.id}')">
+                            <i class="fas fa-paper-plane"></i> Submit Order
+                        </button>
+                    </div>
+                `;
+
+                gameModal.classList.add('show');
+            };
+
+            closeModal.addEventListener('click', () => {
+                gameModal.classList.remove('show');
+            });
+
+            gameModal.addEventListener('click', (e) => {
+                if (e.target === gameModal) gameModal.classList.remove('show');
+            });
+
+            // ==============================================================
+            // ORDER FORM
+            // ==============================================================
+            window.openOrderForm = function(gameId) {
+                const form = document.getElementById('orderForm');
+                if (form) {
+                    form.classList.toggle('show');
+                    if (form.classList.contains('show')) {
+                        document.getElementById('orderName').focus();
+                    }
+                }
+            };
+
+            window.submitOrder = async function(gameId) {
+                const game = games.find(g => g.id === gameId);
+                if (!game) {
+                    showToast('Game not found.', 'error');
+                    return;
+                }
+
+                const name = document.getElementById('orderName').value.trim();
+                const phone = document.getElementById('orderPhone').value.trim();
+                const email = document.getElementById('orderEmail').value.trim();
+                const notes = document.getElementById('orderNotes').value.trim();
+
+                if (!name || !phone) {
+                    showToast('Please fill in your name and phone number.', 'warning');
+                    return;
+                }
+
+                if (!/^[0-9+\-\s]{7,15}$/.test(phone.replace(/\s/g, ''))) {
+                    showToast('Invalid phone number.', 'warning');
+                    return;
+                }
+
+                const order = {
+                    id: 'ORD_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                    gameId: game.id,
+                    gameName: game.name,
+                    gameType: game.type,
+                    price: game.type === 'free' ? 0 : (game.price || 0),
+                    customer: {
+                        name: name,
+                        phone: phone,
+                        email: email || ''
+                    },
+                    notes: notes || '',
+                    status: 'pending',
+                    createdAt: new Date().toISOString()
+                };
+
+                try {
+                    orders.unshift(order);
+                    await saveData();
+                    document.getElementById('orderForm').classList.remove('show');
+                    gameModal.classList.remove('show');
+                    showToast(`✅ Order placed! Order ID: ${order.id}`, 'success');
+                    if (isAdminUnlocked) {
+                        renderAdminOrders();
+                        updateAdminStats();
+                    }
+                } catch (err) {
+                    showToast('Error placing order: ' + err.message, 'error');
+                }
+            };
+
+            // ==============================================================
+            // ADMIN SYSTEM
+            // ==============================================================
+            adminToggle.addEventListener('click', toggleAdmin);
+            bottomAdminToggle.addEventListener('click', toggleAdmin);
+
+            function toggleAdmin() {
+                if (!isAdminUnlocked) {
+                    showPage('admin');
+                    return;
+                }
+                // If already unlocked, just toggle panel visibility
+                adminPanel.classList.toggle('show');
+                if (adminPanel.classList.contains('show')) {
+                    renderAdminGames();
+                    renderAdminOrders();
+                    updateAdminStats();
+                }
+            }
+
+            adminUnlockBtn.addEventListener('click', () => {
+                const pass = adminPassInput.value.trim();
+                adminPassError.textContent = '';
+                if (pass === ADMIN_PASSWORD) {
+                    isAdminUnlocked = true;
+                    adminLock.style.display = 'none';
+                    adminContent.classList.add('show');
+                    showToast('✅ Admin unlocked!', 'success');
+                    renderAdminGames();
+                    renderAdminOrders();
+                    updateAdminStats();
+                    showPage('admin');
+                } else {
+                    adminPassError.textContent = '❌ Wrong password. Try again.';
+                    adminPassInput.value = '';
+                    adminPassInput.focus();
+                }
+            });
+
+            adminPassInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') adminUnlockBtn.click();
+            });
+
+            // Admin Tabs
+            adminTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    adminTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    adminTabContents.forEach(c => c.classList.remove('active'));
+                    const target = document.getElementById('tab-' + tab.dataset.tab);
+                    if (target) target.classList.add('active');
+                });
+            });
+
+            // ==============================================================
+            // ADD/UPDATE GAME
+            // ==============================================================
+            addGameBtn.addEventListener('click', async () => {
+                const name = gameName.value.trim();
+                const category = gameCategory.value;
+                const platform = gamePlatform.value;
+                const type = gameType.value;
+                const price = parseFloat(gamePrice.value) || 0;
+                const size = gameSize.value.trim();
+                const version = gameVersion.value.trim();
+                const description = gameDescription.value.trim();
+                const image = gameImage.value.trim();
+                const trailer = gameTrailer.value.trim();
+                const game360url = game360.value.trim();
+
+                if (!name) {
+                    adminFormFeedback.textContent = '❌ Please enter game name.';
+                    adminFormFeedback.style.color = '#ef4444';
+                    return;
+                }
+
+                adminFormFeedback.textContent = '⏳ Saving...';
+                adminFormFeedback.style.color = '#fbbf24';
+
+                try {
+                    let imageUrl = image;
+                    if (gameImageFile.files && gameImageFile.files[0]) {
+                        const file = gameImageFile.files[0];
+                        if (useFirebase && storage) {
+                            const ref = storage.ref('games/' + Date.now() + '_' + file.name);
+                            await ref.put(file);
+                            imageUrl = await ref.getDownloadURL();
+                        } else {
+                            imageUrl = URL.createObjectURL(file);
+                        }
+                    }
+
+                    const gameData = {
+                        name,
+                        category,
+                        platform,
+                        type,
+                        price: type === 'free' ? 0 : price,
+                        size: size || 'N/A',
+                        version: version || 'v1.0',
+                        description: description || '',
+                        image: imageUrl || 'https://via.placeholder.com/300x200/f0f4ff/4a5a7a?text=No+Image',
+                        trailer: trailer || '',
+                        game360: game360url || '',
+                        featured: false,
+                        trending: false,
+                        rating: 4.5,
+                        reviews: 0,
+                        updatedAt: new Date().toISOString()
+                    };
+
+                    if (editingGameId) {
+                        const index = games.findIndex(g => g.id === editingGameId);
+                        if (index !== -1) {
+                            games[index] = { ...games[index], ...gameData };
+                        }
+                        showToast('✅ Game updated!', 'success');
+                        adminFormFeedback.textContent = '✅ Updated successfully!';
+                        adminFormFeedback.style.color = '#22c55e';
+                        editingGameId = null;
+                        updateGameBtn.style.display = 'none';
+                        cancelEditBtn.style.display = 'none';
+                        addGameBtn.style.display = 'flex';
+                    } else {
+                        const newGame = {
+                            id: 'game_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                            ...gameData,
+                            createdAt: new Date().toISOString()
+                        };
+                        games.unshift(newGame);
+                        showToast('✅ Game added!', 'success');
+                        adminFormFeedback.textContent = '✅ Added successfully!';
+                        adminFormFeedback.style.color = '#22c55e';
+                    }
+
+                    await saveData();
+                    resetGameForm();
+                    renderAll();
+                    populateFilters();
+
+                } catch (err) {
+                    adminFormFeedback.textContent = '❌ ' + err.message;
+                    adminFormFeedback.style.color = '#ef4444';
+                    showToast(err.message, 'error');
+                }
+            });
+
+            updateGameBtn.addEventListener('click', addGameBtn.click);
+
+            cancelEditBtn.addEventListener('click', () => {
+                resetGameForm();
+                editingGameId = null;
+                updateGameBtn.style.display = 'none';
+                cancelEditBtn.style.display = 'none';
+                addGameBtn.style.display = 'flex';
+                adminFormFeedback.textContent = '';
+            });
+
+            function resetGameForm() {
+                gameName.value = '';
+                gameCategory.value = 'Action';
+                gamePlatform.value = 'Android';
+                gameType.value = 'free';
+                gamePrice.value = '';
+                gameSize.value = '';
+                gameVersion.value = '';
+                gameDescription.value = '';
+                gameImage.value = '';
+                gameImageFile.value = '';
+                gameTrailer.value = '';
+                game360.value = '';
+                editingGameId = null;
+                updateGameBtn.style.display = 'none';
+                cancelEditBtn.style.display = 'none';
+                addGameBtn.style.display = 'flex';
+                adminFormFeedback.textContent = '';
+            }
+
+            function editGame(gameId) {
+                const game = games.find(g => g.id === gameId);
+                if (!game) return;
+
+                editingGameId = gameId;
+                gameName.value = game.name || '';
+                gameCategory.value = game.category || 'Action';
+                gamePlatform.value = game.platform || 'Android';
+                gameType.value = game.type || 'free';
+                gamePrice.value = game.price || '';
+                gameSize.value = game.size || '';
+                gameVersion.value = game.version || '';
+                gameDescription.value = game.description || '';
+                gameImage.value = game.image || '';
+                gameTrailer.value = game.trailer || '';
+                game360.value = game.game360 || '';
+
+                addGameBtn.style.display = 'none';
+                updateGameBtn.style.display = 'flex';
+                cancelEditBtn.style.display = 'flex';
+                adminFormFeedback.textContent = `✏️ Editing: ${game.name}`;
+                adminFormFeedback.style.color = '#fbbf24';
+                gameName.focus();
+            }
+
+            function deleteGame(gameId) {
+                if (!confirm('Delete this game?')) return;
+                games = games.filter(g => g.id !== gameId);
+                saveData();
+                renderAll();
+                populateFilters();
+                showToast('✅ Game deleted!', 'success');
+            }
+
+            // ==============================================================
+            // RENDER ADMIN GAMES
+            // ==============================================================
+            function renderAdminGames() {
+                if (!isAdminUnlocked) return;
+                const typeLabels = {
+                    free: '🟢 FREE',
+                    normal: '🔵 NORMAL',
+                    vip: '🟡 VIP'
+                };
+                const typeClasses = {
+                    free: 'free',
+                    normal: 'normal',
+                    vip: 'vip'
+                };
+
+                adminGamesList.innerHTML = games.length === 0 ?
+                    `<p style="color:var(--text-muted);text-align:center;padding:20px 0;">No games yet. Add your first game!</p>` :
+                    games.map(g => `
+                        <div class="admin-game-item">
+                            <div class="info">
+                                <img src="${g.image || 'https://via.placeholder.com/50x50/f0f4ff/4a5a7a?text=No+Image'}" alt="${escapeHtml(g.name)}" />
+                                <div>
+                                    <div class="name">${escapeHtml(g.name)}</div>
+                                    <div style="font-size:0.75rem;color:var(--text-muted);">
+                                        ${g.category || 'Other'} | ${g.platform || 'Android'}
+                                        <span class="badge-sm ${typeClasses[g.type] || 'free'}">${typeLabels[g.type] || 'FREE'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="price">${g.type === 'free' ? 'FREE' : 'TZS '+formatPrice(g.price || 0)}</div>
+                            <div class="actions">
+                                <button class="edit" onclick="editGame('${g.id}')"><i class="fas fa-edit"></i></button>
+                                <button class="delete" onclick="deleteGame('${g.id}')"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    `).join('');
+            }
+
+            // ==============================================================
+            // RENDER ADMIN ORDERS
+            // ==============================================================
+            function renderAdminOrders() {
+                if (!isAdminUnlocked) return;
+
+                const statusOptions = ['pending', 'approved', 'completed', 'cancelled'];
+                const statusLabels = {
+                    pending: '⏳ Pending',
+                    approved: '✅ Approved',
+                    completed: '🎯 Completed',
+                    cancelled: '❌ Cancelled'
+                };
+                const statusClasses = {
+                    pending: 'pending',
+                    approved: 'approved',
+                    completed: 'completed',
+                    cancelled: 'cancelled'
+                };
+
+                if (orders.length === 0) {
+                    adminOrdersContainer.innerHTML =
+                        `<p style="color:var(--text-muted);text-align:center;padding:20px 0;">No orders yet.</p>`;
+                    return;
+                }
+
+                let table = `
+                    <div style="overflow-x:auto;">
+                        <table class="orders-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Game</th>
+                                    <th>Customer</th>
+                                    <th>Phone</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                orders.forEach(o => {
+                    table += `
+                        <tr>
+                            <td><span style="font-weight:600;font-size:0.85rem;">${escapeHtml(o.id)}</span></td>
+                            <td>${escapeHtml(o.gameName || 'N/A')}</td>
+                            <td>${escapeHtml(o.customer?.name || 'N/A')}</td>
+                            <td>${escapeHtml(o.customer?.phone || 'N/A')}</td>
+                            <td><span class="badge-sm ${o.gameType === 'free' ? 'free' : o.gameType === 'vip' ? 'vip' : 'normal'}">${o.gameType ? o.gameType.toUpperCase() : 'N/A'}</span></td>
+                            <td><span class="status-badge ${statusClasses[o.status] || 'pending'}">${statusLabels[o.status] || 'Pending'}</span></td>
+                            <td>
+                                <select class="status-select" onchange="updateOrderStatus('${o.id}', this.value)">
+                                    ${statusOptions.map(s => `<option value="${s}" ${o.status === s ? 'selected' : ''}>${statusLabels[s]}</option>`).join('')}
+                                </select>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                table += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                adminOrdersContainer.innerHTML = table;
+            }
+
+            // ==============================================================
+            // UPDATE ORDER STATUS
+            // ==============================================================
+            window.updateOrderStatus = async function(orderId, newStatus) {
+                const order = orders.find(o => o.id === orderId);
+                if (!order) {
+                    showToast('Order not found.', 'error');
+                    return;
+                }
+                order.status = newStatus;
+                await saveData();
+                renderAdminOrders();
+                updateAdminStats();
+                showToast(`Order ${orderId} updated to ${newStatus}`, 'success');
+            };
+
+            // ==============================================================
+            // UPDATE ADMIN STATS
+            // ==============================================================
+            function updateAdminStats() {
+                statGames.textContent = games.length;
+                statOrders.textContent = orders.length;
+                statPending.textContent = orders.filter(o => o.status === 'pending').length;
+                statFree.textContent = games.filter(g => g.type === 'free').length;
+            }
+
+            // ==============================================================
+            // NEWSLETTER
+            // ==============================================================
+            document.getElementById('newsletterBtn').addEventListener('click', () => {
+                const email = document.getElementById('newsletterEmail').value.trim();
+                if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    showToast('Please enter a valid email address.', 'warning');
+                    return;
+                }
+                showToast('✅ Subscribed successfully! 🎮', 'success');
+                document.getElementById('newsletterEmail').value = '';
+            });
+
+            // ==============================================================
+            // FAQ TOGGLE
+            // ==============================================================
+            document.querySelectorAll('.faq-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    item.classList.toggle('open');
+                });
+            });
+
+            // ==============================================================
+            // MAKE FUNCTIONS GLOBAL
+            // ==============================================================
+            window.editGame = editGame;
+            window.deleteGame = deleteGame;
+            window.openGame = openGame;
+            window.filterCategory = filterCategory;
+
+            // ==============================================================
+            // INIT
+            // ==============================================================
+            setTimeout(() => {
+                document.getElementById('loader').classList.add('hide');
+            }, 800);
+
+            loadData();
+
+            console.log('🎮 GameStore - Premium Gaming Store');
+            console.log('🔑 Admin Password: 5050');
+            console.log('📧 Email: dullamanyama0@gmail.com');
+            console.log('📱 WhatsApp: +255 718 278 672');
+
+        })();
+    </script>
+
+</body>
+  </html>
